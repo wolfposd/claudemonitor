@@ -26,7 +26,7 @@ void lcd_reg_init(void) {
 
     BEGIN_WRITE,
     WRITE_C8_D16, 0xDF, 0x98, 0x53,
-    WRITE_C8_D8, 0xB2, 0x23, 
+    WRITE_C8_D8, 0xB2, 0x23,
 
     WRITE_COMMAND_8, 0xB7,
     WRITE_BYTES, 4,
@@ -37,7 +37,7 @@ void lcd_reg_init(void) {
     0x1C, 0x1A, 0x55, 0x73, 0x63, 0xF0,
 
     WRITE_C8_D16, 0xC0, 0x44, 0xA4,
-    WRITE_C8_D8, 0xC1, 0x16, 
+    WRITE_C8_D8, 0xC1, 0x16,
 
     WRITE_COMMAND_8, 0xC3,
     WRITE_BYTES, 8,
@@ -56,8 +56,8 @@ void lcd_reg_init(void) {
     0x04, 0x06, 0x6B, 0x0F, 0x00,
 
     WRITE_C8_D16, 0xD7, 0x00, 0x30,
-    WRITE_C8_D8, 0xE6, 0x14, 
-    WRITE_C8_D8, 0xDE, 0x01, 
+    WRITE_C8_D8, 0xE6, 0x14,
+    WRITE_C8_D8, 0xDE, 0x01,
 
     WRITE_COMMAND_8, 0xB7,
     WRITE_BYTES, 5,
@@ -69,8 +69,8 @@ void lcd_reg_init(void) {
 
     WRITE_C8_D16, 0xC2, 0x06, 0x3A,
     WRITE_C8_D16, 0xC4, 0x72, 0x12,
-    WRITE_C8_D8, 0xBE, 0x00, 
-    WRITE_C8_D8, 0xDE, 0x02, 
+    WRITE_C8_D8, 0xBE, 0x00,
+    WRITE_C8_D8, 0xDE, 0x02,
 
     WRITE_COMMAND_8, 0xE5,
     WRITE_BYTES, 3,
@@ -80,9 +80,9 @@ void lcd_reg_init(void) {
     WRITE_BYTES, 3,
     0x01, 0x02, 0x00,
 
-    WRITE_C8_D8, 0xDE, 0x00, 
-    WRITE_C8_D8, 0x35, 0x00, 
-    WRITE_C8_D8, 0x3A, 0x05, 
+    WRITE_C8_D8, 0xDE, 0x00,
+    WRITE_C8_D8, 0x35, 0x00,
+    WRITE_C8_D8, 0x3A, 0x05,
 
     WRITE_COMMAND_8, 0x2A,
     WRITE_BYTES, 4,
@@ -92,17 +92,17 @@ void lcd_reg_init(void) {
     WRITE_BYTES, 4,
     0x00, 0x00, 0x01, 0x3F,
 
-    WRITE_C8_D8, 0xDE, 0x02, 
+    WRITE_C8_D8, 0xDE, 0x02,
 
     WRITE_COMMAND_8, 0xE5,
     WRITE_BYTES, 3,
     0x00, 0x02, 0x00,
-    
-    WRITE_C8_D8, 0xDE, 0x00, 
+
+    WRITE_C8_D8, 0xDE, 0x00,
     WRITE_C8_D8, 0x36, 0x00,
     WRITE_COMMAND_8, 0x21,
     END_WRITE,
-    
+
     DELAY, 10,
 
     BEGIN_WRITE,
@@ -123,7 +123,7 @@ Arduino_Canvas *canvas = nullptr;
 
 struct Usage {
   uint8_t weekday = 0;
-  uint32_t day[7] = {0};
+  uint32_t day[7] = { 0 };
   uint32_t h5 = 0;
   uint32_t msgs = 0;
   int pct5 = -1, reset5 = -1, pct7 = -1, reset7 = -1;
@@ -131,8 +131,12 @@ struct Usage {
   bool valid = false;
 } usage;
 
-static uint16_t C(uint8_t r, uint8_t g, uint8_t b) { return canvas->color565(r, g, b); }
-static uint8_t lerp8(uint8_t a, uint8_t b, int t, int tmax) { return a + (int)(b - a) * t / tmax; }
+static uint16_t C(uint8_t r, uint8_t g, uint8_t b) {
+  return canvas->color565(r, g, b);
+}
+static uint8_t lerp8(uint8_t a, uint8_t b, int t, int tmax) {
+  return a + (int)(b - a) * t / tmax;
+}
 static uint16_t mix(uint8_t r1, uint8_t g1, uint8_t b1, uint8_t r2, uint8_t g2, uint8_t b2, int t, int tmax) {
   return C(lerp8(r1, r2, t, tmax), lerp8(g1, g2, t, tmax), lerp8(b1, b2, t, tmax));
 }
@@ -170,21 +174,9 @@ static void drawBackground(unsigned long t) {
     int hw = (int)sqrtf((float)(r * r - dy * dy));
     canvas->drawFastHLine(cx - hw, cy + dy, hw * 2, mix(120, 20, 90, 150, 70, 20, depth, r));
   }
-  // floor
+  // floor (limit bars live here)
   canvas->fillRect(0, HORIZON, SCR_W, SCR_H - HORIZON, C(14, 0, 30));
-  uint16_t line = C(255, 40, 200);
   canvas->drawFastHLine(0, HORIZON, SCR_W, C(0, 240, 255));
-  // moving horizontal lines (perspective: spacing grows toward viewer)
-  float phase = (t % 1500) / 1500.0f;
-  for (int i = 0; i < 6; i++) {
-    float p = (i + phase) / 6.0f;
-    int y = HORIZON + (int)(p * p * (FLOOR_END - HORIZON));
-    if (y > HORIZON && y < FLOOR_END) canvas->drawFastHLine(0, y, SCR_W, line);
-  }
-  // vanishing-point lines
-  for (int i = -10; i <= 10; i++) {
-    canvas->drawLine(SCR_W / 2 + i * 6, HORIZON, SCR_W / 2 + i * 44, FLOOR_END, line);
-  }
 }
 
 static void drawHeader(unsigned long t) {
@@ -250,31 +242,45 @@ static void drawStats() {
   canvas->setTextSize(1);
   canvas->setTextColor(C(0, 240, 255));
   canvas->setCursor(8, 70);
-  if (usage.pct5 < 0) {
-    canvas->print("LAST 5H");
-    fmtTokens(usage.h5, buf, sizeof(buf));
-    glowText(8, 79, buf, 4, C(255, 230, 80), C(120, 60, 0));
-    return;
-  }
-  // 5h session limit: big percent, colour shifts yellow -> orange -> red
-  canvas->print("5H LIMIT");
-  if (usage.reset5 >= 0) {
-    snprintf(buf, sizeof(buf), " %dh%02dm", usage.reset5 / 60, usage.reset5 % 60);
-    canvas->setTextColor(C(190, 150, 255));
-    canvas->print(buf);
-  }
-  uint16_t col = usage.pct5 >= 90 ? C(255, 50, 60) : usage.pct5 >= 70 ? C(255, 140, 40) : C(255, 230, 80);
-  snprintf(buf, sizeof(buf), "%d%%", usage.pct5);
-  glowText(8, 79, buf, 4, col, C(120, 40, 0));
+  canvas->print("LAST 5H");
+  fmtTokens(usage.h5, buf, sizeof(buf));
+  glowText(8, 79, buf, 4, C(255, 230, 80), C(120, 60, 0));
+}
 
+// [█████          ] 70%  -- segmented neon bar
+static void drawLimitBar(int y, const char *label, int pct) {
+  const int segs = 20, segW = 10, h = 14, x0 = 60;
   canvas->setTextSize(1);
   canvas->setTextColor(C(0, 240, 255));
-  canvas->setCursor(112, 82);
-  canvas->print("7D LIMIT");
-  if (usage.pct7 >= 0) {
-    snprintf(buf, sizeof(buf), "%d%%", usage.pct7);
-    glowText(112, 93, buf, 2, C(255, 255, 255), C(70, 0, 140));
+  canvas->setCursor(8, y + 3);
+  canvas->print(label);
+
+  uint16_t br = C(190, 150, 255);
+  canvas->drawFastVLine(x0 - 3, y - 1, h + 2, br);
+  canvas->drawFastHLine(x0 - 3, y - 1, 3, br);
+  canvas->drawFastHLine(x0 - 3, y + h, 3, br);
+  canvas->drawFastVLine(x0 + segs * segW + 2, y - 1, h + 2, br);
+  canvas->drawFastHLine(x0 + segs * segW, y - 1, 3, br);
+  canvas->drawFastHLine(x0 + segs * segW, y + h, 3, br);
+
+  int filled = pct < 0 ? 0 : (pct * segs + 50) / 100;
+  if (filled > segs) filled = segs;
+  for (int i = 0; i < segs; i++) {
+    uint16_t col = i < filled ? mix(0, 240, 255, 255, 40, 200, i, segs - 1) : C(40, 10, 70);
+    canvas->fillRect(x0 + i * segW, y, segW - 2, h, col);
   }
+
+  char buf[8];
+  if (pct < 0) snprintf(buf, sizeof(buf), "--%%");
+  else snprintf(buf, sizeof(buf), "%d%%", pct);
+  uint16_t pc = pct >= 90 ? C(255, 50, 60) : pct >= 70 ? C(255, 140, 40)
+                                                       : C(255, 255, 255);
+  glowText(x0 + segs * segW + 8, y, buf, 2, pc, C(70, 0, 140));
+}
+
+static void drawLimits() {
+  drawLimitBar(118, "SESSION", usage.pct5);
+  drawLimitBar(137, "WEEKLY", usage.pct7);
 }
 
 static void drawFooter(unsigned long t) {
@@ -381,6 +387,7 @@ void loop() {
   drawHeader(now);
   drawStats();
   drawBars();
+  drawLimits();
   drawFooter(now);
   canvas->flush();
 }
