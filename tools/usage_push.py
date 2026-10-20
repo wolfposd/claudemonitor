@@ -1,14 +1,56 @@
 #!/usr/bin/env python3
 """Read local Claude Code logs and push usage stats to the ESP over USB serial.
 
-Line format: U,<weekday 0=Mon>,<d0..d6 tokens/day, today last>,<tokens last 5h>,<messages today>
+Line format: U,<weekday 0=Mon>,<d0..d6 tokens/day, today last>,<tokens last 5h>,<messages today>,
+             <5h limit %>,<5h reset min>,<7d limit %>,<7d reset min>   (-1 = unknown)
+Limits come from the undocumented Claude Code OAuth usage endpoint, using the token Claude Code
+keeps in the macOS keychain. If that token is expired, run `claude` once to refresh it.
 Tokens = input + output + cache creation (cache reads excluded).
 Usage: python3 tools/usage_push.py [--port /dev/cu.usbmodemXXXX] [--interval 30] [--once]
 """
-import argparse, glob, json, os, sys, time, subprocess
+import argparse, glob, json, os, sys, time, subprocess, urllib.request, urllib.error
 from datetime import datetime, timedelta, timezone
 
 PROJECTS = os.path.expanduser("~/.claude/projects")
+
+
+_limits = {"t": 0, "val": (-1, -1, -1, -1)}
+
+
+def _minutes_until(iso):
+    try:
+        t = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+        return max(0, int((t - datetime.now(timezone.utc)).total_seconds() // 60))
+    except (ValueError, AttributeError):
+        return -1
+
+
+def fetch_limits():
+    """Return (pct5h, reset5h_min, pct7d, reset7d_min); -1 where unknown. Cached 60 s."""
+    if time.time() - _limits["t"] < 60:
+        return _limits["val"]
+    _limits["t"] = time.time()
+    try:
+        raw = subprocess.run(["security", "find-generic-password", "-s", "Claude Code-credentials", "-w"],
+                             capture_output=True, text=True, timeout=10).stdout
+        tok = json.loads(raw)["claudeAiOauth"]["accessToken"]
+        req = urllib.request.Request("https://api.anthropic.com/api/oauth/usage", headers={
+            "Authorization": "Bearer " + tok, "anthropic-beta": "oauth-2025-04-20",
+            "User-Agent": "claude-code/2.0"})
+        d = json.load(urllib.request.urlopen(req, timeout=10))
+        out = []
+        for k in ("five_hour", "seven_day"):
+            w = d.get(k) or {}
+            u = w.get("utilization")
+            out += [int(round(u)) if u is not None else -1, _minutes_until(w.get("resets_at"))]
+        _limits["val"] = tuple(out)
+    except urllib.error.HTTPError as ex:
+        print("limits: HTTP", ex.code, "(token expired? run `claude` once)", file=sys.stderr)
+        _limits["val"] = (-1, -1, -1, -1)
+    except Exception as ex:
+        print("limits:", ex, file=sys.stderr)
+        _limits["val"] = (-1, -1, -1, -1)
+    return _limits["val"]
 
 
 def collect():
@@ -57,7 +99,7 @@ def collect():
                     msgs += 1
                 if t >= five_h:
                     h5 += tok
-    return f"U,{now.weekday()}," + ",".join(map(str, days)) + f",{h5},{msgs}\n"
+    return f"U,{now.weekday()}," + ",".join(map(str, days)) + f",{h5},{msgs}," + ",".join(map(str, fetch_limits())) + "\n"
 
 
 def open_port(port):

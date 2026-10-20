@@ -115,7 +115,7 @@ void lcd_reg_init(void) {
 // ---------------------------------------------------------------------------
 // Synthwave usage display
 // Host (tools/usage_push.py) sends one line per update over USB serial:
-//   U,<weekday 0=Mon>,<d0>,...,<d6>,<tokens last 5h>,<messages today>\n
+//   U,<weekday 0=Mon>,<d0>,...,<d6>,<tokens last 5h>,<messages today>[,<5h %>,<5h reset min>,<7d %>,<7d reset min>]\n//   limit fields are -1 when unknown
 // d0..d6 = tokens per day, oldest first, d6 = today.
 // ---------------------------------------------------------------------------
 
@@ -126,6 +126,7 @@ struct Usage {
   uint32_t day[7] = {0};
   uint32_t h5 = 0;
   uint32_t msgs = 0;
+  int pct5 = -1, reset5 = -1, pct7 = -1, reset7 = -1;
   unsigned long lastRx = 0;
   bool valid = false;
 } usage;
@@ -249,9 +250,31 @@ static void drawStats() {
   canvas->setTextSize(1);
   canvas->setTextColor(C(0, 240, 255));
   canvas->setCursor(8, 70);
-  canvas->print("LAST 5H");
-  fmtTokens(usage.h5, buf, sizeof(buf));
-  glowText(8, 79, buf, 4, C(255, 230, 80), C(120, 60, 0));
+  if (usage.pct5 < 0) {
+    canvas->print("LAST 5H");
+    fmtTokens(usage.h5, buf, sizeof(buf));
+    glowText(8, 79, buf, 4, C(255, 230, 80), C(120, 60, 0));
+    return;
+  }
+  // 5h session limit: big percent, colour shifts yellow -> orange -> red
+  canvas->print("5H LIMIT");
+  if (usage.reset5 >= 0) {
+    snprintf(buf, sizeof(buf), " %dh%02dm", usage.reset5 / 60, usage.reset5 % 60);
+    canvas->setTextColor(C(190, 150, 255));
+    canvas->print(buf);
+  }
+  uint16_t col = usage.pct5 >= 90 ? C(255, 50, 60) : usage.pct5 >= 70 ? C(255, 140, 40) : C(255, 230, 80);
+  snprintf(buf, sizeof(buf), "%d%%", usage.pct5);
+  glowText(8, 79, buf, 4, col, C(120, 40, 0));
+
+  canvas->setTextSize(1);
+  canvas->setTextColor(C(0, 240, 255));
+  canvas->setCursor(112, 82);
+  canvas->print("7D LIMIT");
+  if (usage.pct7 >= 0) {
+    snprintf(buf, sizeof(buf), "%d%%", usage.pct7);
+    glowText(112, 93, buf, 2, C(255, 255, 255), C(70, 0, 140));
+  }
 }
 
 static void drawFooter(unsigned long t) {
@@ -277,11 +300,11 @@ static void drawFooter(unsigned long t) {
 
 static void parseLine(char *line) {
   if (line[0] != 'U' || line[1] != ',') return;
-  uint32_t v[10];
+  long v[14];
   int n = 0;
   char *tok = strtok(line + 2, ",");
-  while (tok && n < 10) {
-    v[n++] = strtoul(tok, nullptr, 10);
+  while (tok && n < 14) {
+    v[n++] = strtol(tok, nullptr, 10);
     tok = strtok(nullptr, ",");
   }
   if (n < 10) return;
@@ -289,6 +312,10 @@ static void parseLine(char *line) {
   for (int i = 0; i < 7; i++) usage.day[i] = v[1 + i];
   usage.h5 = v[8];
   usage.msgs = v[9];
+  usage.pct5 = n >= 14 ? v[10] : -1;
+  usage.reset5 = n >= 14 ? v[11] : -1;
+  usage.pct7 = n >= 14 ? v[12] : -1;
+  usage.reset7 = n >= 14 ? v[13] : -1;
   usage.lastRx = millis();
   usage.valid = true;
   HOST.println("RX ok");
