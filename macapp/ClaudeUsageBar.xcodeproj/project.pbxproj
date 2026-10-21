@@ -11,11 +11,13 @@
 		0319F923F3318E32CA91DA42 /* UsageCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05EB7DC299936B26396309DD /* UsageCollector.swift */; };
 		16C67B8CAE72801A15CCB50F /* LineReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = E651F9E922862D965D482AB8 /* LineReader.swift */; };
 		22C64F8E5D09CCA06C126F40 /* Usage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8DB699C00EC0C61B92C30D9 /* Usage.swift */; };
+		2F8F4324A3F182B511E1EFF4 /* SerialLineFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A79F2F5E43FE2082CF7E03D8 /* SerialLineFormatter.swift */; };
 		357F8D5D5D303A34DC559E0E /* NativeDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1E968E476754F3A839B2539 /* NativeDashboardView.swift */; };
 		4DB5180008E0695DC6056847 /* SynthwaveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A71E555603D2B73B4D311F /* SynthwaveView.swift */; };
 		4EF69BA3020C26F4C4379BA8 /* KeychainUsageClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B79A9949EFA4B5938173CD57 /* KeychainUsageClient.swift */; };
 		5A459BC8A72573EFE55EB84E /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E767B93719B8CEB16DDD97C7 /* MenuBarIconView.swift */; };
 		66F2A2239C84D8B84934F8A2 /* UsageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EF6158F0A7AB99270592A12 /* UsageStore.swift */; };
+		8A0BBCEF88C0E72C693FF82A /* SerialPortManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA79D73EADC022EBDEA89CF0 /* SerialPortManager.swift */; };
 		AB12186C363EEE55A851FE84 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046FBC746DA2D3B54BA6E54E /* SettingsView.swift */; };
 		B8B0E05459EE079DA4A5DC80 /* TokenFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9F155AE3FE7EC4A7C1271C1 /* TokenFormatting.swift */; };
 		EC731A8EC958A7AD66A39E56 /* DashboardPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C0D4983A88940748E70042B /* DashboardPanelView.swift */; };
@@ -28,6 +30,8 @@
 		6C0066D9CF174EA4F3BD4CE4 /* ClaudeUsageBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeUsageBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C0D4983A88940748E70042B /* DashboardPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPanelView.swift; sourceTree = "<group>"; };
 		9EF6158F0A7AB99270592A12 /* UsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStore.swift; sourceTree = "<group>"; };
+		A79F2F5E43FE2082CF7E03D8 /* SerialLineFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerialLineFormatter.swift; sourceTree = "<group>"; };
+		AA79D73EADC022EBDEA89CF0 /* SerialPortManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SerialPortManager.swift; sourceTree = "<group>"; };
 		B1E968E476754F3A839B2539 /* NativeDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeDashboardView.swift; sourceTree = "<group>"; };
 		B79A9949EFA4B5938173CD57 /* KeychainUsageClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainUsageClient.swift; sourceTree = "<group>"; };
 		C6A71E555603D2B73B4D311F /* SynthwaveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SynthwaveView.swift; sourceTree = "<group>"; };
@@ -72,6 +76,8 @@
 			isa = PBXGroup;
 			children = (
 				B79A9949EFA4B5938173CD57 /* KeychainUsageClient.swift */,
+				A79F2F5E43FE2082CF7E03D8 /* SerialLineFormatter.swift */,
+				AA79D73EADC022EBDEA89CF0 /* SerialPortManager.swift */,
 				05EB7DC299936B26396309DD /* UsageCollector.swift */,
 				9EF6158F0A7AB99270592A12 /* UsageStore.swift */,
 			);
@@ -171,6 +177,8 @@
 				16C67B8CAE72801A15CCB50F /* LineReader.swift in Sources */,
 				5A459BC8A72573EFE55EB84E /* MenuBarIconView.swift in Sources */,
 				357F8D5D5D303A34DC559E0E /* NativeDashboardView.swift in Sources */,
+				2F8F4324A3F182B511E1EFF4 /* SerialLineFormatter.swift in Sources */,
+				8A0BBCEF88C0E72C693FF82A /* SerialPortManager.swift in Sources */,
 				AB12186C363EEE55A851FE84 /* SettingsView.swift in Sources */,
 				4DB5180008E0695DC6056847 /* SynthwaveView.swift in Sources */,
 				B8B0E05459EE079DA4A5DC80 /* TokenFormatting.swift in Sources */,

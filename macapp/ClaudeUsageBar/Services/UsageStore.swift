@@ -11,8 +11,10 @@ final class UsageStore: ObservableObject {
 
     private var timer: Timer?
     private var refreshTask: Task<Void, Never>?
+    private let serial: SerialPortManager
 
-    init() {
+    init(serial: SerialPortManager) {
+        self.serial = serial
         refresh()
         scheduleTimer()
     }
@@ -38,6 +40,7 @@ final class UsageStore: ObservableObject {
             u.reset7Min = lim.reset7Min
             self.usage = u
             self.lastError = lim.error
+            self.serial.send(SerialLineFormatter.line(for: u))
         }
     }
 

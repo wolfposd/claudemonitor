@@ -8,6 +8,7 @@ enum DashboardStyle: String, CaseIterable, Identifiable {
 
 struct DashboardPanelView: View {
     @EnvironmentObject var store: UsageStore
+    @EnvironmentObject var serial: SerialPortManager
     @AppStorage("dashboardStyle") private var styleRaw: String = DashboardStyle.synthwave.rawValue
     @State private var showSettings = false
 
@@ -58,6 +59,7 @@ struct DashboardPanelView: View {
         .popover(isPresented: $showSettings) {
             SettingsView()
                 .environmentObject(store)
+                .environmentObject(serial)
         }
     }
 }
