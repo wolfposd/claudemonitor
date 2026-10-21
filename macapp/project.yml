@@ -1,0 +1,29 @@
+name: ClaudeUsageBar
+options:
+  bundleIdPrefix: com.redsix.claudeusagebar
+  deploymentTarget:
+    macOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  ClaudeUsageBar:
+    type: application
+    platform: macOS
+    sources:
+      - path: ClaudeUsageBar
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.redsix.claudeusagebar.ClaudeUsageBar
+        PRODUCT_NAME: ClaudeUsageBar
+        INFOPLIST_KEY_LSUIElement: "YES"
+        INFOPLIST_KEY_NSHumanReadableCopyright: ""
+        ENABLE_HARDENED_RUNTIME: "NO"
+        CODE_SIGN_STYLE: Automatic
+    info:
+      path: ClaudeUsageBar/Info.plist
+      properties:
+        LSUIElement: true
+        CFBundleDisplayName: ClaudeUsageBar
