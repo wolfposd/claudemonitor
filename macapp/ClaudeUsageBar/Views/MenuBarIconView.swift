@@ -13,6 +13,7 @@ struct MenuBarIconView: View {
         guard let p = usage.pct5 else { return .secondary }
         if p >= 90 { return .red }
         if p >= 70 { return .orange }
+        if p >= 50 { return .yellow }
         return .primary
     }
 
