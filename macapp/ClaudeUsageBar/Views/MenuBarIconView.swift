@@ -17,8 +17,11 @@ struct MenuBarIconView: View {
     }
 
     var body: some View {
-        Image(systemName: "bolt.circle.fill")
-            .symbolRenderingMode(.hierarchical)
+        Image("MenuBarIcon")
+            .renderingMode(.template)
+            .resizable()
+            .scaledToFit()
             .foregroundStyle(tint)
+            .frame(width: 20, height: 20)
     }
 }

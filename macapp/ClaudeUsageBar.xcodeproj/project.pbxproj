@@ -13,6 +13,7 @@
 		22C64F8E5D09CCA06C126F40 /* Usage.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8DB699C00EC0C61B92C30D9 /* Usage.swift */; };
 		2F8F4324A3F182B511E1EFF4 /* SerialLineFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A79F2F5E43FE2082CF7E03D8 /* SerialLineFormatter.swift */; };
 		357F8D5D5D303A34DC559E0E /* NativeDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1E968E476754F3A839B2539 /* NativeDashboardView.swift */; };
+		3CB6BF83BDC74D6B65438EFD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5A50032B62C9307A6DB610D5 /* Assets.xcassets */; };
 		4DB5180008E0695DC6056847 /* SynthwaveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6A71E555603D2B73B4D311F /* SynthwaveView.swift */; };
 		4EF69BA3020C26F4C4379BA8 /* KeychainUsageClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B79A9949EFA4B5938173CD57 /* KeychainUsageClient.swift */; };
 		5A459BC8A72573EFE55EB84E /* MenuBarIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E767B93719B8CEB16DDD97C7 /* MenuBarIconView.swift */; };
@@ -27,6 +28,7 @@
 		046FBC746DA2D3B54BA6E54E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		05EB7DC299936B26396309DD /* UsageCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageCollector.swift; sourceTree = "<group>"; };
 		2A20B9436364380A70942C1B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		5A50032B62C9307A6DB610D5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6C0066D9CF174EA4F3BD4CE4 /* ClaudeUsageBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ClaudeUsageBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9C0D4983A88940748E70042B /* DashboardPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardPanelView.swift; sourceTree = "<group>"; };
 		9EF6158F0A7AB99270592A12 /* UsageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsageStore.swift; sourceTree = "<group>"; };
@@ -46,6 +48,7 @@
 		0F4D5D38DB7BC9438BB09C8D /* ClaudeUsageBar */ = {
 			isa = PBXGroup;
 			children = (
+				5A50032B62C9307A6DB610D5 /* Assets.xcassets */,
 				FBEBF09448BC32D006D5D496 /* ClaudeUsageBarApp.swift */,
 				2A20B9436364380A70942C1B /* Info.plist */,
 				D6AC4ACCFF7656FE5DF21015 /* Models */,
@@ -121,6 +124,7 @@
 			buildConfigurationList = B3DB8DF6992B7D47817CE567 /* Build configuration list for PBXNativeTarget "ClaudeUsageBar" */;
 			buildPhases = (
 				5F2CCD1993E006B8D596BDE8 /* Sources */,
+				4C65E13F7960AA4A97D68E00 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -165,6 +169,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4C65E13F7960AA4A97D68E00 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3CB6BF83BDC74D6B65438EFD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5F2CCD1993E006B8D596BDE8 /* Sources */ = {
