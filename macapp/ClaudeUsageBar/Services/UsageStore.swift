@@ -21,9 +21,13 @@ final class UsageStore: ObservableObject {
 
     private func scheduleTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
+        let t = Timer.scheduledTimer(withTimeInterval: refreshInterval, repeats: true) { [weak self] _ in
             self?.refresh()
         }
+        // Let the system coalesce this wakeup with other timers instead of
+        // waking the CPU at the exact instant every time.
+        t.tolerance = refreshInterval * 0.1
+        timer = t
     }
 
     func refresh() {

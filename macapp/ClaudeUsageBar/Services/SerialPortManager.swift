@@ -29,9 +29,11 @@ final class SerialPortManager: ObservableObject {
     init() {
         selectedPort = UserDefaults.standard.string(forKey: Self.prefKey) ?? Self.autoDetect
         refreshPorts()
-        pollTimer = Timer.scheduledTimer(withTimeInterval: Self.checkInterval, repeats: true) { [weak self] _ in
+        let t = Timer.scheduledTimer(withTimeInterval: Self.checkInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refreshPorts() }
         }
+        t.tolerance = Self.checkInterval * 0.1
+        pollTimer = t
     }
 
     /// Re-scans `/dev` for ESP serial devices and opens/closes the port as needed.
