@@ -21,6 +21,7 @@ struct SynthwaveView: View {
             drawStats(&ctx)
             drawBars(&ctx)
             drawLimits(&ctx)
+            drawStatusIndicator(&ctx)
         }
         .frame(width: scrW * 1.4, height: scrH * 1.4)
         .background(Color.black)
@@ -139,6 +140,24 @@ struct SynthwaveView: View {
         glowText(&ctx, x: x0 + CGFloat(segs) * segW + 8, y: y - 3, label2, size: 14, col: pc, shadow: c(70, 0, 140))
     }
 
+
+    // MARK: - status indicator (live / stale / waiting), top-right corner
+
+    private func drawStatusIndicator(_ ctx: inout GraphicsContext) {
+        let color: Color
+        if !usage.isValid {
+            color = c(255, 60, 200)  // waiting for first data
+        } else if usage.isStale {
+            color = c(255, 80, 80)   // stale
+        } else {
+            color = c(0, 255, 160)   // live
+        }
+        let r: CGFloat = 4
+        let center = CGPoint(x: scrW - 14, y: 11)
+        ctx.fill(Path(ellipseIn: CGRect(x: center.x - r - 3, y: center.y - r - 3, width: (r + 3) * 2, height: (r + 3) * 2)),
+                  with: .color(color.opacity(0.35)))
+        ctx.fill(Path(ellipseIn: CGRect(x: center.x - r, y: center.y - r, width: r * 2, height: r * 2)), with: .color(color))
+    }
 
     // MARK: - glow text (double-draw, port of glowText())
 
