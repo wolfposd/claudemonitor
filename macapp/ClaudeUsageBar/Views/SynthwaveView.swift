@@ -62,8 +62,10 @@ struct SynthwaveView: View {
 
     private func drawHeader(_ ctx: inout GraphicsContext) {
         glowText(&ctx, x: 8, y: 2, "CLAUDE", size: 20, col: c(255, 60, 200), shadow: c(0, 200, 255))
-        ctx.draw(Text("USAGE").font(.system(size: 10, design: .monospaced)).foregroundColor(c(0, 240, 255)),
-                  at: CGPoint(x: 104 + 20, y: 15), anchor: .center)
+
+        ctx.draw(Text("\(TokenFormatting.formatCost(usage.h5Cost)) | \(TokenFormatting.formatCost(usage.todayCost)) | \(TokenFormatting.formatCost(usage.weekCost)) ")
+                    .font(.system(size: 9, design: .monospaced)).foregroundColor(c(0, 255, 160)),
+                  at: CGPoint(x: scrW - 28, y: 11), anchor: .trailing)
         var x = 0
         while CGFloat(x) < scrW {
             let col = mix(255, 40, 200, 0, 240, 255, x, Int(scrW))

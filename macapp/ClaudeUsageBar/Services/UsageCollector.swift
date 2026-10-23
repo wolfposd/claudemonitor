@@ -97,6 +97,7 @@ actor UsageCollector {
 
         var todayInput = 0, todayOutput = 0, todayCacheWrite = 0, todayCost = 0.0
         var h5Input = 0, h5Output = 0, h5CacheWrite = 0, h5Cost = 0.0
+        var weekInput = 0, weekOutput = 0, weekCacheWrite = 0, weekCost = 0.0
 
         for cache in fileCaches.values {
             for rec in cache.records {
@@ -107,7 +108,13 @@ actor UsageCollector {
                 if rec.timestamp < start { continue }
 
                 let idx = cal.dateComponents([.day], from: start, to: cal.startOfDay(for: rec.timestamp)).day ?? -1
-                if idx >= 0 && idx < 7 { days[idx] += rec.tokens }
+                if idx >= 0 && idx < 7 {
+                    days[idx] += rec.tokens
+                    weekInput += rec.input
+                    weekOutput += rec.output
+                    weekCacheWrite += rec.cacheWrite
+                    weekCost += rec.cost
+                }
                 if idx == 6 {
                     msgs += 1
                     todayInput += rec.input
@@ -130,7 +137,9 @@ actor UsageCollector {
             todayInput: todayInput, todayOutput: todayOutput,
             todayCacheWrite: todayCacheWrite, todayCost: todayCost,
             h5Input: h5Input, h5Output: h5Output,
-            h5CacheWrite: h5CacheWrite, h5Cost: h5Cost
+            h5CacheWrite: h5CacheWrite, h5Cost: h5Cost,
+            weekInput: weekInput, weekOutput: weekOutput,
+            weekCacheWrite: weekCacheWrite, weekCost: weekCost
         )
     }
 
@@ -187,7 +196,8 @@ actor UsageCollector {
     private func buildUsage(
         now: Date, days: [Int], h5: Int, msgs: Int,
         todayInput: Int, todayOutput: Int, todayCacheWrite: Int, todayCost: Double,
-        h5Input: Int, h5Output: Int, h5CacheWrite: Int, h5Cost: Double
+        h5Input: Int, h5Output: Int, h5CacheWrite: Int, h5Cost: Double,
+        weekInput: Int, weekOutput: Int, weekCacheWrite: Int, weekCost: Double
     ) -> Usage {
         var cal = Calendar(identifier: .gregorian)
         cal.firstWeekday = 2 // Monday
@@ -208,6 +218,10 @@ actor UsageCollector {
         u.h5Output = h5Output
         u.h5CacheWrite = h5CacheWrite
         u.h5Cost = h5Cost
+        u.weekInput = weekInput
+        u.weekOutput = weekOutput
+        u.weekCacheWrite = weekCacheWrite
+        u.weekCost = weekCost
         u.lastUpdated = now
         return u
     }

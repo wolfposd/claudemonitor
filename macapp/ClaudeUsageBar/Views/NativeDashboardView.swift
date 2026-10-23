@@ -24,9 +24,10 @@ struct NativeDashboardView: View {
             }
 
             HStack(spacing: 12) {
-                statTile(title: "TODAY", value: TokenFormatting.format(usage.today), color: .pink)
                 statTile(title: "LAST 5H", value: TokenFormatting.format(usage.h5), color: .yellow)
+                statTile(title: "TODAY", value: TokenFormatting.format(usage.today), color: .pink)
                 statTile(title: "MSGS", value: "\(usage.msgs)", color: .purple)
+                statTile(title: "$DAY", value: TokenFormatting.formatCost(usage.todayCost), color: .green)
             }
 
             VStack(alignment: .leading, spacing: 4) {

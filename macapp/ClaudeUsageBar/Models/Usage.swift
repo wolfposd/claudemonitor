@@ -17,6 +17,10 @@ struct Usage: Equatable {
     var h5Output: Int = 0
     var h5CacheWrite: Int = 0
     var h5Cost: Double = 0
+    var weekInput: Int = 0
+    var weekOutput: Int = 0
+    var weekCacheWrite: Int = 0
+    var weekCost: Double = 0         // estimated USD spend over the 7-day window
 
     var pct5: Int?             // session (5h) limit utilization %, nil == unknown
     var reset5Min: Int?        // minutes until session limit resets

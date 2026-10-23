@@ -43,6 +43,13 @@ struct SystemVerboseView: View {
             }
             Divider().gridCellColumns(5)
             GridRow {
+                Text("5H").font(.caption).foregroundStyle(.secondary).gridColumnAlignment(.leading)
+                tokenCell(usage.h5Input, color: .pink)
+                tokenCell(usage.h5Output, color: .cyan)
+                tokenCell(usage.h5CacheWrite, color: .orange)
+                costCell(usage.h5Cost)
+            }
+            GridRow {
                 Text("TODAY").font(.caption).foregroundStyle(.secondary).gridColumnAlignment(.leading)
                 tokenCell(usage.todayInput, color: .pink)
                 tokenCell(usage.todayOutput, color: .cyan)
@@ -50,11 +57,11 @@ struct SystemVerboseView: View {
                 costCell(usage.todayCost)
             }
             GridRow {
-                Text("LAST 5H").font(.caption).foregroundStyle(.secondary).gridColumnAlignment(.leading)
-                tokenCell(usage.h5Input, color: .pink)
-                tokenCell(usage.h5Output, color: .cyan)
-                tokenCell(usage.h5CacheWrite, color: .orange)
-                costCell(usage.h5Cost)
+                Text("WEEKLY").font(.caption).foregroundStyle(.secondary).gridColumnAlignment(.leading)
+                tokenCell(usage.weekInput, color: .pink)
+                tokenCell(usage.weekOutput, color: .cyan)
+                tokenCell(usage.weekCacheWrite, color: .orange)
+                costCell(usage.weekCost)
             }
         }
     }

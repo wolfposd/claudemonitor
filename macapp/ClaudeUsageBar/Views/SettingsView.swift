@@ -12,7 +12,7 @@ struct SettingsView: View {
                     Text(style.rawValue).tag(style.rawValue)
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
 
             Stepper(value: $store.refreshInterval, in: 10...300, step: 10) {
                 Text("Refresh every \(Int(store.refreshInterval))s")
@@ -42,6 +42,6 @@ struct SettingsView: View {
             }
         }
         .padding()
-        .frame(width: 360)
+        .frame(width: 380)
     }
 }
