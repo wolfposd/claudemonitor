@@ -14,4 +14,9 @@ enum TokenFormatting {
             return "\(v)"
         }
     }
+
+    /// Compact USD display for an estimated cost, e.g. "$0.004" or "$1.23".
+    static func formatCost(_ v: Double) -> String {
+        v < 0.01 ? String(format: "$%.4f", v) : String(format: "$%.2f", v)
+    }
 }

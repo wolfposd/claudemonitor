@@ -18,8 +18,10 @@ actor UsageCollector {
                 let input_tokens: Int?
                 let output_tokens: Int?
                 let cache_creation_input_tokens: Int?
+                let cache_read_input_tokens: Int?
             }
             let id: String?
+            let model: String?
             let usage: Usage?
         }
         let message: Message?
@@ -29,8 +31,20 @@ actor UsageCollector {
 
     private struct Record {
         let key: String
-        let tokens: Int
+        let model: String?
+        let input: Int
+        let output: Int
+        let cacheWrite: Int
+        let cacheRead: Int
         let timestamp: Date
+
+        // Matches the firmware's/pre-existing total: cache reads aren't counted here
+        // (they're tracked separately below for the per-type breakdown).
+        var tokens: Int { input + output + cacheWrite }
+
+        var cost: Double {
+            Pricing.cost(model: model, input: input, output: output, cacheWrite: cacheWrite, cacheRead: cacheRead)
+        }
     }
 
     private struct FileCache {
@@ -81,6 +95,9 @@ actor UsageCollector {
         var msgs = 0
         var seen = Set<String>()
 
+        var todayInput = 0, todayOutput = 0, todayCacheWrite = 0, todayCost = 0.0
+        var h5Input = 0, h5Output = 0, h5CacheWrite = 0, h5Cost = 0.0
+
         for cache in fileCaches.values {
             for rec in cache.records {
                 if rec.key != "|" {
@@ -91,12 +108,30 @@ actor UsageCollector {
 
                 let idx = cal.dateComponents([.day], from: start, to: cal.startOfDay(for: rec.timestamp)).day ?? -1
                 if idx >= 0 && idx < 7 { days[idx] += rec.tokens }
-                if idx == 6 { msgs += 1 }
-                if rec.timestamp >= fiveHoursAgo { h5 += rec.tokens }
+                if idx == 6 {
+                    msgs += 1
+                    todayInput += rec.input
+                    todayOutput += rec.output
+                    todayCacheWrite += rec.cacheWrite
+                    todayCost += rec.cost
+                }
+                if rec.timestamp >= fiveHoursAgo {
+                    h5 += rec.tokens
+                    h5Input += rec.input
+                    h5Output += rec.output
+                    h5CacheWrite += rec.cacheWrite
+                    h5Cost += rec.cost
+                }
             }
         }
 
-        return buildUsage(now: now, days: days, h5: h5, msgs: msgs)
+        return buildUsage(
+            now: now, days: days, h5: h5, msgs: msgs,
+            todayInput: todayInput, todayOutput: todayOutput,
+            todayCacheWrite: todayCacheWrite, todayCost: todayCost,
+            h5Input: h5Input, h5Output: h5Output,
+            h5CacheWrite: h5CacheWrite, h5Cost: h5Cost
+        )
     }
 
     /// Reads only the bytes appended to `path` since the last cached offset (or the
@@ -135,15 +170,25 @@ actor UsageCollector {
                   let t = Self.parseISO8601(ts) else { continue }
 
             let key = (entry.message?.id ?? "") + "|" + (entry.requestId ?? "")
-            let tok = (usage.input_tokens ?? 0) + (usage.output_tokens ?? 0)
-                + (usage.cache_creation_input_tokens ?? 0)
-            records.append(Record(key: key, tokens: tok, timestamp: t))
+            records.append(Record(
+                key: key,
+                model: entry.message?.model,
+                input: usage.input_tokens ?? 0,
+                output: usage.output_tokens ?? 0,
+                cacheWrite: usage.cache_creation_input_tokens ?? 0,
+                cacheRead: usage.cache_read_input_tokens ?? 0,
+                timestamp: t
+            ))
         }
 
         fileCaches[path] = FileCache(offset: newOffset, mtime: mtime, records: records)
     }
 
-    private func buildUsage(now: Date, days: [Int], h5: Int, msgs: Int) -> Usage {
+    private func buildUsage(
+        now: Date, days: [Int], h5: Int, msgs: Int,
+        todayInput: Int, todayOutput: Int, todayCacheWrite: Int, todayCost: Double,
+        h5Input: Int, h5Output: Int, h5CacheWrite: Int, h5Cost: Double
+    ) -> Usage {
         var cal = Calendar(identifier: .gregorian)
         cal.firstWeekday = 2 // Monday
         // Foundation weekday: 1 = Sunday ... 7 = Saturday. Convert to 0 = Monday.
@@ -155,6 +200,14 @@ actor UsageCollector {
         u.day = days
         u.h5 = h5
         u.msgs = msgs
+        u.todayInput = todayInput
+        u.todayOutput = todayOutput
+        u.todayCacheWrite = todayCacheWrite
+        u.todayCost = todayCost
+        u.h5Input = h5Input
+        u.h5Output = h5Output
+        u.h5CacheWrite = h5CacheWrite
+        u.h5Cost = h5Cost
         u.lastUpdated = now
         return u
     }

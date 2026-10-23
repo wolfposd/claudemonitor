@@ -3,6 +3,7 @@ import SwiftUI
 enum DashboardStyle: String, CaseIterable, Identifiable {
     case synthwave = "Synthwave"
     case native = "Native"
+    case verbose = "System Verbose"
     var id: String { rawValue }
 }
 
@@ -24,6 +25,8 @@ struct DashboardPanelView: View {
                     SynthwaveView(usage: store.usage)
                 case .native:
                     NativeDashboardView(usage: store.usage, lastError: store.lastError)
+                case .verbose:
+                    SystemVerboseView(usage: store.usage, lastError: store.lastError)
                 }
             }
 
