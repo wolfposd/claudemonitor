@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """Print Claude Code token usage to the console, broken down by period and model.
 
-Reads the same `~/.claude/projects/**/*.jsonl` logs as usage_push.py, but instead of
-pushing a compact line to the ESP, prints a readable report: usage for the last 5
+Reads  `~/.claude/projects/**/*.jsonl` , and prints a readable report: usage for the last 5
 hours / today / the last 7 days, split out per model family (and per exact model
 version within that family), with input / input(c) / output tokens and an estimated
 USD cost. input(c) = cache_creation_input_tokens + cache_read_input_tokens, billed at
@@ -13,10 +12,25 @@ Usage: python3 tools/usage_report.py
 import glob
 import json
 import os
+import platform
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-PROJECTS = os.path.expanduser("~/.claude/projects")
+
+def claude_projects_dir():
+    system = platform.system()
+    if system == "Windows":
+        home = os.environ.get("USERPROFILE") or os.path.expanduser("~")
+        return os.path.join(home, ".claude", "projects")
+    elif system == "Darwin":  # macOS
+        return os.path.expanduser("~/.claude/projects")
+    elif system == "Linux":
+        return os.path.expanduser("~/.claude/projects")
+    else:
+        return os.path.expanduser("~/.claude/projects")  # best guess for anything else
+
+
+PROJECTS = claude_projects_dir()
 
 # Estimated USD price per 1M tokens, by model family. `None` means no published rate
 # yet, so cost is reported as "n/a" rather than guessed.
