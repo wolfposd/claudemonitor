@@ -115,7 +115,7 @@ void lcd_reg_init(void) {
 // ---------------------------------------------------------------------------
 // Synthwave usage display
 // Host (tools/usage_push.py) sends one line per update over USB serial:
-//   U,<weekday 0=Mon>,<d0>,...,<d6>,<tokens last 5h>,<messages today>[,<5h %>,<5h reset min>,<7d %>,<7d reset min>]\n//   limit fields are -1 when unknown
+//   U,<weekday 0=Mon>,<d0>,...,<d6>,<tokens last 5h>,<messages today>[,<5h %>,<5h reset min>,<7d %>,<7d reset min>[,<5h cents>,<today cents>,<7d cents>]]\n//   limit fields are -1 when unknown
 // d0..d6 = tokens per day, oldest first, d6 = today.
 // ---------------------------------------------------------------------------
 
@@ -127,6 +127,7 @@ struct Usage {
   uint32_t h5 = 0;
   uint32_t msgs = 0;
   int pct5 = -1, reset5 = -1, pct7 = -1, reset7 = -1;
+  long cost5 = -1, costDay = -1, costWeek = -1;  // USD cents
   unsigned long lastRx = 0;
   bool valid = false;
 } usage;
@@ -146,6 +147,11 @@ static void fmtTokens(uint32_t v, char *out, size_t n) {
   else if (v >= 10000) snprintf(out, n, "%luK", v / 1000);
   else if (v >= 1000) snprintf(out, n, "%lu.%luK", v / 1000, (v % 1000) / 100);
   else snprintf(out, n, "%lu", v);
+}
+
+static void fmtCost(long cents, char *out, size_t n) {
+  if (cents < 0) snprintf(out, n, "$--");
+  else snprintf(out, n, "$%ld.%02ld", cents / 100, cents % 100);
 }
 
 static void glowText(int x, int y, const char *s, uint8_t size, uint16_t col, uint16_t shadow) {
@@ -181,11 +187,15 @@ static void drawBackground(unsigned long t) {
 
 static void drawHeader(unsigned long t) {
   glowText(8, 4, "CLAUDE", 2, C(255, 60, 200), C(0, 200, 255));
+  char a[12], b[12], c[12], line[40];
+  fmtCost(usage.cost5, a, sizeof(a));
+  fmtCost(usage.costDay, b, sizeof(b));
+  fmtCost(usage.costWeek, c, sizeof(c));
+  snprintf(line, sizeof(line), "%s | %s | %s", a, b, c);
   canvas->setTextSize(1);
-  canvas->setTextColor(C(0, 240, 255));
-  canvas->setCursor(104, 11);
-  canvas->print("USAGE");
-  canvas->print((t / 500) % 2 ? "_" : " ");
+  canvas->setTextColor(C(0, 255, 160));
+  canvas->setCursor(SCR_W - 28 - 6 * (int)strlen(line), 7);
+  canvas->print(line);
   for (int x = 0; x < SCR_W; x += 2) {
     canvas->fillRect(x, 22, 2, 1, mix(255, 40, 200, 0, 240, 255, x, SCR_W));
   }
@@ -306,10 +316,10 @@ static void drawFooter(unsigned long t) {
 
 static void parseLine(char *line) {
   if (line[0] != 'U' || line[1] != ',') return;
-  long v[14];
+  long v[17];
   int n = 0;
   char *tok = strtok(line + 2, ",");
-  while (tok && n < 14) {
+  while (tok && n < 17) {
     v[n++] = strtol(tok, nullptr, 10);
     tok = strtok(nullptr, ",");
   }
@@ -322,6 +332,9 @@ static void parseLine(char *line) {
   usage.reset5 = n >= 14 ? v[11] : -1;
   usage.pct7 = n >= 14 ? v[12] : -1;
   usage.reset7 = n >= 14 ? v[13] : -1;
+  usage.cost5 = n >= 17 ? v[14] : -1;
+  usage.costDay = n >= 17 ? v[15] : -1;
+  usage.costWeek = n >= 17 ? v[16] : -1;
   usage.lastRx = millis();
   usage.valid = true;
   HOST.println("RX ok");
