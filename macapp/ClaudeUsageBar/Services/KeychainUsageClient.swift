@@ -1,5 +1,4 @@
 import Foundation
-import Security
 
 /// Port of `tools/usage_push.py`'s `fetch_limits()`: reads the OAuth token Claude Code
 /// stores in the macOS Keychain and calls the undocumented usage-limits endpoint.
@@ -76,19 +75,32 @@ enum KeychainUsageClient {
         return max(0, Int(date.timeIntervalSinceNow / 60))
     }
 
-    /// Reads the access token directly via the Security framework
-    /// (equivalent to `security find-generic-password -s "Claude Code-credentials" -w`).
+    /// Reads the access token by shelling out to `security` (same as `usage_push.py`),
+    /// rather than calling `SecItemCopyMatching` directly. `/usr/bin/security` is a
+    /// stable, Apple-signed binary, so a Keychain "Always Allow" grant to it persists
+    /// across rebuilds — unlike this app's own ad-hoc-signed binary, whose signature
+    /// changes on every rebuild and would otherwise re-trigger the Keychain prompt.
     private static func readAccessToken() -> String? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: "Claude Code-credentials",
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-        ]
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess, let data = item as? Data,
-              let creds = try? JSONDecoder().decode(OAuthCreds.self, from: data) else {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/security")
+        process.arguments = ["find-generic-password", "-s", "Claude Code-credentials", "-w"]
+
+        let stdout = Pipe()
+        process.standardOutput = stdout
+        process.standardError = Pipe()
+
+        do {
+            try process.run()
+        } catch {
+            return nil
+        }
+        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+
+        guard process.terminationStatus == 0,
+              let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              let jsonData = output.data(using: .utf8),
+              let creds = try? JSONDecoder().decode(OAuthCreds.self, from: jsonData) else {
             return nil
         }
         return creds.claudeAiOauth.accessToken
