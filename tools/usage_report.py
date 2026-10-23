@@ -2,10 +2,10 @@
 """Print Claude Code token usage to the console, broken down by period and model.
 
 Reads  `~/.claude/projects/**/*.jsonl` , and prints a readable report: usage for the last 5
-hours / today / the last 7 days, split out per model family (and per exact model
-version within that family), with input / input(c) / output tokens and an estimated
-USD cost. input(c) = cache_creation_input_tokens + cache_read_input_tokens, billed at
-the discounted "cache" rate below.
+hours / today / the last 7 days / the last 4 weeks, split out per model family (and per
+exact model version within that family), with input / input(c) / output tokens and an
+estimated USD cost. input(c) = cache_creation_input_tokens + cache_read_input_tokens,
+billed at the discounted "cache" rate below.
 
 Usage: python3 tools/usage_report.py
 """
@@ -70,17 +70,18 @@ def new_bucket():
 
 def collect():
     """Returns (records, period_bounds) where records is a list of
-    (timestamp, model, input, output, cache) tuples from the last 7 days."""
+    (timestamp, model, input, output, cache) tuples from the last 4 weeks."""
     now = datetime.now().astimezone()
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     week_start = today_start - timedelta(days=6)
+    four_week_start = today_start - timedelta(days=27)
     five_h_ago = now - timedelta(hours=5)
 
     records = []
     seen = set()
     for path in glob.glob(os.path.join(PROJECTS, "**", "*.jsonl"), recursive=True):
         try:
-            if datetime.fromtimestamp(os.path.getmtime(path)).astimezone() < week_start:
+            if datetime.fromtimestamp(os.path.getmtime(path)).astimezone() < four_week_start:
                 continue
             f = open(path, encoding="utf-8", errors="ignore")
         except OSError:
@@ -104,7 +105,7 @@ def collect():
                     t = datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
                 except (ValueError, AttributeError):
                     continue
-                if t < week_start:
+                if t < four_week_start:
                     continue
                 records.append((
                     t,
@@ -113,7 +114,7 @@ def collect():
                     usage.get("output_tokens") or 0,
                     (usage.get("cache_creation_input_tokens") or 0) + (usage.get("cache_read_input_tokens") or 0),
                 ))
-    return records, (five_h_ago, today_start, week_start)
+    return records, (five_h_ago, today_start, week_start, four_week_start)
 
 
 def format_tokens(v):
@@ -195,15 +196,17 @@ def print_pricing_table():
 def main():
     print_pricing_table()
 
-    records, (five_h_ago, today_start, _week_start) = collect()
+    records, (five_h_ago, today_start, week_start, _four_week_start) = collect()
 
     r_5h = [r for r in records if r[0] >= five_h_ago]
     r_today = [r for r in records if r[0] >= today_start]
-    r_week = records  # already limited to the 7-day window by collect()
+    r_week = [r for r in records if r[0] >= week_start]
+    r_4week = records  # already limited to the 4-week window by collect()
 
     print_period("LAST 5H", r_5h)
     print_period("TODAY", r_today)
     print_period("WEEKLY (7D)", r_week)
+    print_period("4 WEEKS (28D)", r_4week)
     print()
 
 
