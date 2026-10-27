@@ -4,7 +4,7 @@
 Line format: U,<weekday 0=Mon>,<d0..d6 tokens/day, today last>,<tokens last 5h>,<messages today>,
              <5h limit %>,<5h reset min>,<7d limit %>,<7d reset min>   (-1 = unknown)
 Limits come from the undocumented Claude Code OAuth usage endpoint, using the token Claude Code
-keeps in the macOS keychain. If that token is expired, run `claude` once to refresh it.
+keeps in the macOS keychain. If that token is expired, `claude -p "/usage"` is run to refresh it (free, no model call).
 Tokens = input + output + cache creation (cache reads excluded).
 Usage: python3 tools/usage_push.py [--port /dev/cu.usbmodemXXXX] [--interval 30] [--once]
 """
@@ -25,19 +25,67 @@ def _minutes_until(iso):
         return -1
 
 
+def _read_token():
+    raw = subprocess.run(["security", "find-generic-password", "-s", "Claude Code-credentials", "-w"],
+                         capture_output=True, text=True, timeout=10).stdout
+    return json.loads(raw)["claudeAiOauth"]["accessToken"]
+
+
+def _locate_claude():
+    """Well-known install locations first, then the login shell PATH (nvm/volta/custom prefixes)."""
+    home = os.path.expanduser("~")
+    for c in (f"{home}/.local/bin/claude", f"{home}/.claude/local/claude", "/opt/homebrew/bin/claude",
+              "/usr/local/bin/claude", f"{home}/.npm-global/bin/claude", f"{home}/.volta/bin/claude"):
+        if os.access(c, os.X_OK):
+            return c
+    try:
+        out = subprocess.run(["/bin/zsh", "-ilc", "command -v claude"], capture_output=True, text=True,
+                             timeout=15, stdin=subprocess.DEVNULL).stdout.strip().splitlines()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out[-1].strip() if out and os.access(out[-1].strip(), os.X_OK) else None
+
+
+def _refresh_token_via_cli():
+    """`claude -p "/usage"` is handled locally (no model call, no cost) but the CLI refreshes its
+    OAuth token and rewrites the keychain item on startup. True if it exited successfully."""
+    claude = _locate_claude()
+    if not claude:
+        return False
+    env = dict(os.environ)
+    env["PATH"] = ":".join([os.path.dirname(claude), "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin",
+                            "/bin", env.get("PATH", "")])
+    try:
+        r = subprocess.run([claude, "-p", "/usage"], capture_output=True, stdin=subprocess.DEVNULL,
+                           env=env, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return r.returncode == 0
+
+
+def _request_usage(tok):
+    req = urllib.request.Request("https://api.anthropic.com/api/oauth/usage", headers={
+        "Authorization": "Bearer " + tok, "anthropic-beta": "oauth-2025-04-20",
+        "User-Agent": "claude-code/2.0"})
+    return json.load(urllib.request.urlopen(req, timeout=10))
+
+
 def fetch_limits():
     """Return (pct5h, reset5h_min, pct7d, reset7d_min); -1 where unknown. Cached 60 s."""
     if time.time() - _limits["t"] < 60:
         return _limits["val"]
     _limits["t"] = time.time()
     try:
-        raw = subprocess.run(["security", "find-generic-password", "-s", "Claude Code-credentials", "-w"],
-                             capture_output=True, text=True, timeout=10).stdout
-        tok = json.loads(raw)["claudeAiOauth"]["accessToken"]
-        req = urllib.request.Request("https://api.anthropic.com/api/oauth/usage", headers={
-            "Authorization": "Bearer " + tok, "anthropic-beta": "oauth-2025-04-20",
-            "User-Agent": "claude-code/2.0"})
-        d = json.load(urllib.request.urlopen(req, timeout=10))
+        tok = _read_token()
+        try:
+            d = _request_usage(tok)
+        except urllib.error.HTTPError as ex:
+            if ex.code not in (401, 403) or not _refresh_token_via_cli():
+                raise
+            fresh = _read_token()
+            if fresh == tok:
+                raise
+            d = _request_usage(fresh)
         out = []
         for k in ("five_hour", "seven_day"):
             w = d.get(k) or {}

@@ -38,10 +38,28 @@ enum KeychainUsageClient {
     }
 
     private static func fetchLimitsUncached() async -> Limits {
-        guard let token = readAccessToken() else {
+        guard var token = readAccessToken() else {
             return Limits(error: "Keychain item \"Claude Code-credentials\" not found. Run `claude` once.")
         }
 
+        var result = await requestUsage(token: token)
+        if result.isAuthFailure {
+            // Expired token: `claude -p "/usage"` is handled locally (no model call, no cost),
+            // but the CLI refreshes its OAuth token and rewrites the Keychain item on startup.
+            if await refreshTokenViaCLI(), let fresh = readAccessToken(), fresh != token {
+                token = fresh
+                result = await requestUsage(token: token)
+            }
+        }
+        return result.limits
+    }
+
+    private struct UsageResult {
+        var limits: Limits
+        var isAuthFailure = false
+    }
+
+    private static func requestUsage(token: String) async -> UsageResult {
         var request = URLRequest(url: URL(string: "https://api.anthropic.com/api/oauth/usage")!)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("oauth-2025-04-20", forHTTPHeaderField: "anthropic-beta")
@@ -50,17 +68,91 @@ enum KeychainUsageClient {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-                let hint = http.statusCode == 401 || http.statusCode == 403
-                    ? " (token expired? run `claude` once)" : ""
-                return Limits(error: "HTTP \(http.statusCode)\(hint)")
+                let authFailure = http.statusCode == 401 || http.statusCode == 403
+                let hint = authFailure ? " (token expired? run `claude` once)" : ""
+                return UsageResult(limits: Limits(error: "HTTP \(http.statusCode)\(hint)"),
+                                   isAuthFailure: authFailure)
             }
             let decoded = try JSONDecoder().decode(UsageResponse.self, from: data)
             let (pct5, reset5) = convert(decoded.five_hour)
             let (pct7, reset7) = convert(decoded.seven_day)
-            return Limits(pct5: pct5, reset5Min: reset5, pct7: pct7, reset7Min: reset7)
+            return UsageResult(limits: Limits(pct5: pct5, reset5Min: reset5, pct7: pct7, reset7Min: reset7))
         } catch {
-            return Limits(error: error.localizedDescription)
+            return UsageResult(limits: Limits(error: error.localizedDescription))
         }
+    }
+
+    // MARK: - Token refresh via the Claude CLI
+
+    /// Runs `claude -p "/usage"` so the CLI refreshes its OAuth token. Returns true if the
+    /// process exited successfully within the timeout.
+    private static func refreshTokenViaCLI(timeout: TimeInterval = 30) async -> Bool {
+        guard let claude = locateClaudeBinary() else { return false }
+
+        let process = Process()
+        process.executableURL = claude
+        process.arguments = ["-p", "/usage"]
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+        process.standardInput = FileHandle.nullDevice
+
+        // GUI apps get a minimal PATH; npm-installed `claude` uses `#!/usr/bin/env node`.
+        var env = ProcessInfo.processInfo.environment
+        let extra = [claude.deletingLastPathComponent().path, "/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
+        env["PATH"] = (extra + [env["PATH"] ?? ""]).joined(separator: ":")
+        process.environment = env
+
+        return await withCheckedContinuation { continuation in
+            process.terminationHandler = { proc in
+                continuation.resume(returning: proc.terminationStatus == 0)
+            }
+            do {
+                try process.run()
+            } catch {
+                process.terminationHandler = nil
+                continuation.resume(returning: false)
+                return
+            }
+            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) {
+                if process.isRunning { process.terminate() }
+            }
+        }
+    }
+
+    /// Finds the `claude` executable: well-known install locations first, then the user's
+    /// login shell PATH (covers nvm/volta/custom prefixes).
+    private static func locateClaudeBinary() -> URL? {
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser.path
+        let candidates = [
+            "\(home)/.local/bin/claude",
+            "\(home)/.claude/local/claude",
+            "/opt/homebrew/bin/claude",
+            "/usr/local/bin/claude",
+            "\(home)/.npm-global/bin/claude",
+            "\(home)/.volta/bin/claude",
+        ]
+        if let hit = candidates.first(where: { fm.isExecutableFile(atPath: $0) }) {
+            return URL(fileURLWithPath: hit)
+        }
+
+        let shell = Process()
+        shell.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        shell.arguments = ["-ilc", "command -v claude"]
+        let stdout = Pipe()
+        shell.standardOutput = stdout
+        shell.standardError = Pipe()
+        shell.standardInput = FileHandle.nullDevice
+        do { try shell.run() } catch { return nil }
+        let data = stdout.fileHandleForReading.readDataToEndOfFile()
+        shell.waitUntilExit()
+
+        guard shell.terminationStatus == 0,
+              let path = String(data: data, encoding: .utf8)?
+                .split(whereSeparator: \.isNewline).last
+                .map({ $0.trimmingCharacters(in: .whitespaces) }),
+              fm.isExecutableFile(atPath: path) else { return nil }
+        return URL(fileURLWithPath: path)
     }
 
     private static func convert(_ window: UsageResponse.Window?) -> (Int?, Int?) {
