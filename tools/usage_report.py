@@ -13,6 +13,7 @@ import glob
 import json
 import os
 import platform
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -62,6 +63,19 @@ def estimate_cost(family, input_tok, cache_tok, output_tok):
     return (input_tok / million * rates["input"]
             + cache_tok / million * rates["cache"]
             + output_tok / million * rates["output"])
+
+
+UUID_PREFIX = re.compile(r"^([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}:", re.I)
+LABEL_WIDTH = 32
+
+
+def model_label(model):
+    """Indented model name that fits the MODEL column; a leading UUID is shortened."""
+    name = UUID_PREFIX.sub(r"\1…:", model or "(unknown)")
+    label = f"  {name}"
+    if len(label) > LABEL_WIDTH:
+        label = label[:LABEL_WIDTH - 1] + "…"
+    return label
 
 
 def new_bucket():
@@ -164,8 +178,8 @@ def print_period(title, records):
         for model in versions:
             vb = by_version[(fam, model)]
             vcost = estimate_cost(fam, vb["input"], vb["cache"], vb["output"]) if fam != "other" else None
-            label = f"  {model or '(unknown)'}"
-            print(f"{label:<32} {format_tokens(vb['input']):>9} {format_tokens(vb['cache']):>9} "
+            label = model_label(model)
+            print(f"{label:<{LABEL_WIDTH}} {format_tokens(vb['input']):>9} {format_tokens(vb['cache']):>9} "
                   f"{format_tokens(vb['output']):>9} {format_cost(vcost):>9}")
 
         total_input += b["input"]
